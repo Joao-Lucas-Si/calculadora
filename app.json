@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "calculadora",
+    "slug": "snack-2c49ce89-f9eb-4d85-a2db-5ff120104371",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6c757d"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.expojoaolucas.snack2c49ce89f9eb4d85a2db5ff120104371"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "048a2dbd-5279-4ea2-9165-5b8672789f74"
+      }
+    }
+  }
+}
