@@ -20,34 +20,34 @@ export default function ModalVariaveisValores(props: props) {
     <View style={modal.modal}>
       <View style={styles.entradas}>
         <View style={styles.entrada}>
-          <Text style={styles.variavel}>x</Text>
+          <Text style={styles.variavel}>a</Text>
           <TextInput 
             defaultValue={String(props.x())} 
             style={styles.input} 
             keyboardType="numeric"
             onChangeText={(text) => {
-              props.funcaoCeder("x", text == "" ? 0 : parseInt(text))}
+              props.funcaoCeder("x", text == "" ? 0 : Number(text))}
               }
              />
         </View>
         <View style={styles.entrada}>
-          <Text style={styles.variavel}>y</Text>
+          <Text style={styles.variavel}>b</Text>
           <TextInput 
             defaultValue={String(props.y())} 
             style={styles.input} 
             keyboardType="numeric"
             onChangeText={(text) => {
-              props.funcaoCeder("y", text == "" ? 0 : parseInt(text))}
+              props.funcaoCeder("y", text == "" ? 0 : Number(text))}
               } />
         </View>
         <View style={styles.entrada}>
-          <Text style={styles.variavel}>z</Text>
+          <Text style={styles.variavel}>c</Text>
           <TextInput 
             defaultValue={String(props.z())} 
             style={styles.input} 
             keyboardType="numeric"
             onChangeText={(text) => {
-              props.funcaoCeder("z", text == "" ? 0 : parseInt(text))}
+              props.funcaoCeder("z", text == "" ? 0 : Number(text))}
               } />
         </View>
         

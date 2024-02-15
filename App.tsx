@@ -8,47 +8,17 @@ import {
   Pressable,
 } from 'react-native';
 import { useState, useEffect, useMemo } from 'react';
-// You can import supported modules from npm
+import Visor from "./components/Visor"
 import { Card } from 'react-native-paper';
 import Botao from './components/Botao';
-// or any files within the Snack
 import styleVars from './style/vars';
-import * as SQLite from 'expo-sqlite';
+import { save, deleteAll, selectAll, historicoInterface, remove } from "./models/DB"
+import create from "./models/DB"
 import ModalHistorico from './components/ModalHistorico';
 import ModalVariaveisValores from "./components/ModalVariaveisValores"
 
 export default function App() {
-  const db = SQLite.openDatabase('database.db');
-  useEffect(() => {
-    db.transaction((tx) => {
-      tx.executeSql(
-        `create table if not exists calculo (
-        id integer primary key AUTOINCREMENT,
-        calculo varchar(500)
-        )`,
-        [],
-        (_, result) => {
-          console.log('criado com sucesso!');
-        },
-        (_, error) => {
-          console.log('Erro ao criar:', error);
-          return true;
-        }
-      );
-    });
-  }, [db]);
-  interface selectInterface {
-    _array: historicoInterface[];
-  }
-
-  interface result {
-    rows: selectInterface;
-  }
-
-  interface historicoInterface {
-    id: number;
-    calculo: String;
-  }
+  create()
   const [valorX, setValorX] = useState(0);
   const [valorY, setValorY] = useState(0);
   const [valorZ, setValorZ] = useState(0);
@@ -57,19 +27,15 @@ export default function App() {
   const [exibirExtras, setExibirExtras] = useState(false);
   const [posicao, setPosicao] = useState(0);
   const [calculo, setCalculo] = useState('');
-  const [historico, setHistorico] = useState(Array());
-  const valores = useMemo(() => {
-    let comPosicao =
-      calculo.slice(0, calculo.length - posicao) +
-      '|' +
-      calculo.slice(calculo.length - posicao);
-    return comPosicao
-      .replaceAll('+', ' + ')
-      .replaceAll('-', ' - ')
-      .replaceAll('X', ' X ')
-      .replaceAll('/', ' / ')
-      .replaceAll('^', ' ^ ');
-  }, [calculo, posicao]);
+  const [historico, setHistorico] = useState<historicoInterface[]>(Array());
+
+  function fatorial(numero: number) {
+    return Array.from({length: numero}, (_, i) => i + 1).reduce((acumulacao, atual) => acumulacao * atual)
+  }
+
+  function porcentagem(num1: number, num2: number) {
+    return (num2 / 100) * num1
+  }
 
   const calculado = useMemo(calcular, [calculo, calcular]);
 
@@ -89,12 +55,18 @@ export default function App() {
         let calculoTemporario = calculoPametro;
         calculoTemporario = calculoTemporario
           .replaceAll('𝝅', '3.141592653')
+          .replaceAll('φ', '1.618033988')
+          .replaceAll('e', '2.718281828')
+          .replaceAll('β*', '0.70258')
+          .replaceAll('δ', '4.66920')
+          .replaceAll('L', '0.110001000')
+          .replaceAll('μ', '1.451369234')
           .replaceAll('X', '*')
           .replaceAll('^', '**')
           .replaceAll(',', '.')
-          .replaceAll('x', String(valorX))
-          .replaceAll('y', String(valorY))
-          .replaceAll('z', String(valorZ));
+          .replaceAll('a', String(valorX))
+          .replaceAll('b', String(valorY))
+          .replaceAll('c', String(valorZ));
         for (const mathLog of calculoTemporario.matchAll(
           /([0-9\.]*)?(\(.*?\))?log([0-9\.]*)?(\(.+?\))?/g
         )) {
@@ -163,47 +135,42 @@ export default function App() {
             })`
           );
         }
-
+        for (const fatorialNumero of calculoTemporario.matchAll(/(([0-9]+(\.[0-9]+)?)?(\(.*\))?)!/g)) {
+          console.log(fatorialNumero)
+          console.log("fatorial:" + eval(fatorialNumero[2]))
+          calculoTemporario = calculoTemporario.replace(
+            fatorialNumero[0],
+            `${fatorial(eval(fatorialNumero[0].startsWith("(") ? fatorialNumero[4] : fatorialNumero[2]) as number)}`
+          )
+        }
+        for (const porcentagemMatch of calculoTemporario.matchAll(/([0-9]+(\.[0-9]+)?)%([0-9]+(\.[0-9]+)?)/g)) {
+          console.log(porcentagemMatch)
+          calculoTemporario = calculoTemporario.replace(
+            porcentagemMatch[0],
+            `${porcentagem(eval(porcentagemMatch[1]), eval(porcentagemMatch[3]))}`
+          )
+        }
+        console.log(calculoTemporario)
         return String(eval(calculoTemporario)).replace('.', ',');
       } catch {
-        return 'calculo invalido';
+        return 'calculo invalído';
       }
     }
   }
 
-  function remover() {}
-
   function salvar() {
-    db.transaction((tx) => {
-      tx.executeSql(
-        `insert into calculo (calculo) values (?)`,
-        [calculo],
-        (_, result) => {
-          console.log('Inserido com sucesso!');
-        },
-        (_, error) => {
-          console.log('Erro ao inserir:', error);
-          return true;
-        }
-      );
-    });
-    setCalculo(calculado);
+    console.log(calculo, calcular)
+    save(calculo, calcular(), valorX, valorY, valorZ)
+    setCalculo(calcular)
+  }
+
+  function remover(id: number) {
+    remove(id)
+    selectAll(setHistorico)
   }
   function limpar() {
-    db.transaction((tx) => {
-      tx.executeSql(
-        `delete from calculo`,
-        [],
-        (_, result) => {
-          console.log('limpado deletado com sucesso!');
-        },
-        (_, error) => {
-          console.log('Erro ao limpar:', error);
-          return true;
-        }
-      );
-    });
-    setCalculo(calculado);
+    deleteAll()
+    setHistoricoAberto(false)
   }
 
   function adicionar(valor: string): void {
@@ -231,21 +198,8 @@ export default function App() {
     }
   }
 
-  function coletatHistorico() {
-    db.transaction((tx) => {
-      tx.executeSql(
-        `select * from calculo`,
-        [],
-        (_, result: result) => {
-          console.log(result.rows._array);
-          setHistorico(result.rows._array);
-        },
-        (_, error) => {
-          console.log('Erro ao selecionar:', error);
-          return true;
-        }
-      );
-    });
+  function coletarHistorico() {
+    selectAll(setHistorico)
   }
 
   function mudarPosicao(valor: number) {
@@ -258,14 +212,18 @@ export default function App() {
     <View style={styles.app}>
       {historicoAberto ? (
         <ModalHistorico
-          funcaoRecuperar={(calculoAntigo: string) => {
+          funcaoRecuperar={(calculoAntigo: string, aAntigo: number, bAntigo: number, cAntigo: number) => {
             setCalculo(calculoAntigo);
+            setValorX(aAntigo)
+            setValorY(bAntigo)
+            setValorZ(cAntigo)
             setHistoricoAberto(false);
           }}
           funcaoFechar={() => setHistoricoAberto(false)}
           historico={historico}
           funcaoCalcular={calcular}
           funcaoLimpar={limpar}
+          funcaoRemover={remover}
         />
       ) : (
         ''
@@ -293,29 +251,13 @@ export default function App() {
       }
 
       <View style={styles.calculadora}>
-        <View style={styles.visor}>
-          <ScrollView style={{ height: 50 }}>
-            <Text numberOfLines={1} style={{ fontSize: 25, color: '#fff' }}>
-              {valores}
-            </Text>
-          </ScrollView>
-          <Text
-            style={{
-              textAlign: 'right',
-              width: '100%',
-              color: styleVars.roxoClaro,
-              fontSize: 25,
-            }}>
-            {calculado}
-          </Text>
-          <Text>x={valorX}, y={valorY}, z={valorZ}</Text>
-        </View>
+        <Visor calculado={calculado} valorX={valorX} valorY={valorY} valorZ={valorZ} calculo={calculo} posicao={posicao} />
         <View style={styles.entrada}>
           <View style={styles.opcoes}>
             <Botao
               funcao={() => {
                 setHistoricoAberto(true);
-                coletatHistorico();
+                coletarHistorico();
               }}
               styles={{ alignSelf: 'flex-end' }}
               texto="H"
@@ -334,9 +276,9 @@ export default function App() {
             />
           </View>
           <View style={styles.opcoes}>
-            <Botao funcao={adicionar} texto={exibirExtras ? 'x' : '1'} />
-            <Botao funcao={adicionar} texto={exibirExtras ? 'y' : '2'} />
-            <Botao funcao={adicionar} texto={exibirExtras ? 'z' : '3'} />
+            <Botao funcao={adicionar} texto={exibirExtras ? 'a' : '1'} />
+            <Botao funcao={adicionar} texto={exibirExtras ? 'b' : '2'} />
+            <Botao funcao={adicionar} texto={exibirExtras ? 'c' : '3'} />
             <Botao
               funcao={adicionar}
               especial={true}
@@ -345,8 +287,8 @@ export default function App() {
           </View>
           <View style={styles.opcoes}>
             <Botao funcao={adicionar} texto={exibirExtras ? '𝝅' : '4'} />
-            <Botao funcao={adicionar} texto={'5'} />
-            <Botao funcao={adicionar} texto={'6'} />
+            <Botao funcao={adicionar} texto={exibirExtras ? 'e' :'5'} />
+            <Botao funcao={adicionar} texto={exibirExtras ? 'φ' :'6'} />
             <Botao
               funcao={adicionar}
               especial={true}
@@ -354,9 +296,9 @@ export default function App() {
             />
           </View>
           <View style={styles.opcoes}>
-            <Botao funcao={adicionar} texto={'7'} />
-            <Botao funcao={adicionar} texto={'8'} />
-            <Botao funcao={adicionar} texto={'9'} />
+            <Botao funcao={adicionar} texto={exibirExtras ? 'β*' :'7'} />
+            <Botao funcao={adicionar} texto={exibirExtras ? 'δ' : '8'} />
+            <Botao funcao={adicionar} texto={exibirExtras ? 'L' : '9'} />
             <Botao
               funcao={adicionar}
               especial={true}
@@ -364,10 +306,19 @@ export default function App() {
             />
           </View>
           <View style={styles.opcoes}>
-            <Botao funcao={adicionar} texto="0" />
-            <Botao funcao={adicionar} texto="(" />
+            <Botao funcao={adicionar} texto={exibirExtras ? 'μ' :"0"} />
+            <Botao 
+              funcao={adicionar} 
+              texto={exibirExtras ? "%" : "("} 
+              especial={exibirExtras}
+            />
 
-            <Botao funcao={adicionar} texto=")" />
+
+            <Botao 
+              funcao={adicionar} 
+              especial={exibirExtras}
+              texto={exibirExtras ? "!" : ")"} 
+            />
 
             <Botao
               funcao={(char: string) =>
@@ -428,18 +379,7 @@ const styles = StyleSheet.create({
   entrada: {
     flex: 1,
   },
-  visor: {
-    borderBottomRightRadius: 10,
-    borderBottomLeftRadius: 10,
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    fontSize: 20,
-    width: '100%',
-    borderBottomWidth: 5,
-    borderColor: styleVars.roxoEscuro,
-    backgroundColor: styleVars.fundo3,
-    paddingTop: 60,
-  },
+  
   app: {
     flex: 1,
     alignItems: 'center',

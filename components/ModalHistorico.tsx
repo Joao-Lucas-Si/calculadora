@@ -1,18 +1,15 @@
 import Botao from "./Botao"
-import { View, ScrollView, Text, StyleSheet } from "react-native"
+import { View, ScrollView, Text, StyleSheet, Button, Pressable } from "react-native"
 import styleVars from "../style/vars"
 import modal from "../style/modal"
+import { historicoInterface } from "../models/DB"
 interface props {
-  historico: Array<historico>,
+  historico: Array<historicoInterface>,
   funcaoFechar: Function,
   funcaoRecuperar: Function,
   funcaoCalcular: Function,
   funcaoLimpar: Function
-}
-
-interface historico {
-  id: number,
-  calculo: string
+  funcaoRemover: (id: number) => void
 }
 
 export default function ModalHistorico(props: props) {
@@ -23,12 +20,20 @@ export default function ModalHistorico(props: props) {
               props.historico.map(historico => (
                 <View style={styles.historico}>
                   <Text 
-                    onPress={() => props.funcaoRecuperar(historico.calculo)} 
+                    onPress={() => props.funcaoRecuperar(historico.calculo, historico.a, historico.b, historico.c)} 
                     style={styles.calculo}
                   >
                     {historico.calculo}
                   </Text>
-                  <Text style={styles.calculado}>{props.funcaoCalcular(historico.calculo)}</Text>
+                  <Text style={styles.calculado}>{historico.resultado}</Text>
+                  <Text style={styles.variaveis}>a={historico.a}, b={historico.b}, c={historico.c}</Text>
+                  <Botao
+                    funcao={() => props.funcaoRemover(historico.id)}
+                    texto="X"
+                    fontSize={20}
+                    normal={false}
+                    styles={styles.remover}
+                  />
                 </View>
                 )
             )}
@@ -51,13 +56,26 @@ const styles = StyleSheet.create({
     flex: 1,
 
   },
+  remover: {
+    backgroundColor: "#f00",
+    borderRadius: 10,
+    marginTop: 10,
+    flex: 1,
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   calculo: {
     color: "#fff",
-    fontSize: 22,
+    fontSize: 25,
   },
   calculado: {
     alignSelf: "flex-end",
     color: styleVars.roxoClaro,
-    fontSize: 18,
+    fontSize: 20,
+  }, 
+  variaveis: {
+    fontSize: 18
   }
 })
