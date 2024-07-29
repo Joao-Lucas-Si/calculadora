@@ -1,22 +1,23 @@
 import { useMemo } from "react"
 import {Text, View, ScrollView, StyleSheet} from "react-native"
+import { UnidadeDados } from "../services/conversao/Types"
 import styleVars from "../style/vars"
 
 interface props {
-  calculo: string,
+  unidadeBase: UnidadeDados|undefined,
+  unidadeTransformar: UnidadeDados|undefined
+  calculo: (string|string[])[],
   calculado: any,
-  valorZ: number,
-  valorY: number,
-  valorX: number,
+  variaveis: Record<string, number|number[]>
   posicao: number
 }
 
-export default function Visor({ calculo, calculado, valorX, valorY, valorZ, posicao }: props) {
+export default function Visor({ calculo, unidadeBase, unidadeTransformar, calculado, variaveis, posicao }: props) {
    const valores = useMemo(() => {
     let comPosicao =
-      calculo.slice(0, calculo.length - posicao) +
+      calculo.slice(0, calculo.length - posicao).join("") +
       '|' +
-      calculo.slice(calculo.length - posicao);
+      calculo.slice(calculo.length - posicao).join("");
     return comPosicao
       .replaceAll('+', ' + ')
       .replaceAll('-', ' - ')
@@ -32,6 +33,13 @@ export default function Visor({ calculo, calculado, valorX, valorY, valorZ, posi
           {valores}
         </Text>
       </ScrollView>
+      <Text
+        style={{
+          textAlign: "left",
+          fontSize: 10,
+          color: "#fff"
+        }}
+      >{unidadeBase?.unidade ?? ""}</Text>
       <Text 
         selectable={true} 
         
@@ -43,7 +51,14 @@ export default function Visor({ calculo, calculado, valorX, valorY, valorZ, posi
         }}>
         {calculado}
       </Text>
-      <Text>x={valorX}, y={valorY}, z={valorZ}</Text>
+      <Text
+        style={{
+          textAlign: "right",
+          fontSize: 10,
+          color: styleVars.roxoClaro
+        }}
+      >{unidadeTransformar?.unidade ?? ""}</Text>
+      <Text>{Object.entries(variaveis).map(([nome, valor]) => `${nome}=${valor instanceof Array ? valor.join(","): valor}`).join(", ")}</Text>
     </View>
   )
 }

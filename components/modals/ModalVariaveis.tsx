@@ -1,0 +1,72 @@
+import { Modal, View, Text, ScrollView, Button, FlatList, TouchableHighlight, Dimensions } from "react-native"
+import Conversoes from "../../services/conversao/conversoes"
+import { UnidadeDados, UnidadeConversao } from "../../services/conversao/Types"
+import cores from "../../style/vars"
+import { useState, useEffect } from "react"
+
+export default function ModalForm({visivel, setVisivel, variaveis, adicionar}: {  visivel: boolean, setVisivel: (visivel: boolean) => void, adicionar: (char: string) => void, variaveis: Record<string, number|number[]>}) {
+  
+  return <Modal
+    visible={visivel}
+    transparent
+  >
+    <View
+      style={{
+        width: Dimensions.get("window").width,
+        height: Dimensions.get("window").height,
+        paddingHorizontal: Dimensions.get("window").width * 0.1,
+        paddingVertical: Dimensions.get("window").height * 0.1
+      }}
+    >
+      <View 
+        style={{
+          height: "100%",
+          backgroundColor: cores.fundo,
+          borderWidth: 5,
+          borderColor: cores.roxoMedio
+        }}
+      >
+        <FlatList
+          data={Object.entries(variaveis)}
+          renderItem={(
+            {item: [nome, valor]}: {item: [string, number[]|number]}
+          ) => <TouchableHighlight
+            onPress={() => adicionar(nome)}
+            style={{
+              borderColor: cores.roxoMedio,
+              borderWidth: 3,
+              borderRadius: 10,
+              padding: 5,
+              flex: 1,
+              justifyContent: "center",
+              alignItems: "center"
+            }}
+          >
+            <>
+              <Text
+                style={{
+                  fontSize: 30,
+                  color: "#fff",
+                  
+                }}
+              >{nome}</Text>
+              <Text
+                style={{
+                  color: cores.fundo3,
+                  fontSize: 15
+                }}
+              >{valor instanceof Array ? valor.join(",") : valor}</Text>
+            </>
+          </TouchableHighlight>}
+        />
+        <Button 
+          onPress={() => {
+            setVisivel(false)
+          }}
+          title="fechar"
+          color={cores.roxoMedio}
+        />
+      </View>
+    </View>
+  </Modal>
+}

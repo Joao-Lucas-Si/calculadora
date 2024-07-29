@@ -8,30 +8,102 @@ import {
   Pressable,
 } from 'react-native';
 import { useState, useEffect, useMemo } from 'react';
+import ModalForm from "./components/modals/ModalForm"
+import ModalConversao from "./components/modals/ModalConversao"
 import Visor from "./components/Visor"
+import myMath from "./services/myMath"
 import { Card } from 'react-native-paper';
 import Botao from './components/Botao';
 import styleVars from './style/vars';
 import { save, deleteAll, selectAll, historicoInterface, remove } from "./models/DB"
-import create from "./models/DB"
-import ModalHistorico from './components/ModalHistorico';
+// import create from "./models/DB"
+// import ModalHistorico from './components/ModalHistorico';
+import { UnidadeDados } from "./services/conversao/Types"
 import ModalVariaveisValores from "./components/ModalVariaveisValores"
+import ModalVariaveis from "./components/modals/ModalVariaveis"
 
 export default function App() {
-  create()
-  const [valorX, setValorX] = useState(0);
-  const [valorY, setValorY] = useState(0);
-  const [valorZ, setValorZ] = useState(0);
+  // create()
+  const [unidadeAtual, setUnidadeAtual] = useState<Record<"base"|"transformar", UnidadeDados>|undefined>()
+  const [mostrarConversao, setMostrarConversao] = useState(false)
+  const [conversor, setConversor] = useState<((base: number) => number)|undefined>(undefined)
+  const [mostrarVariaveis, setMostrarVariaveis] = useState(false)
+  const [mostrarFormulas, setMostrarFormulas] = useState(false)
+  const [variaveis, setVariaveis] = useState<Record<string, number|number[]>>({})
   const [historicoAberto, setHistoricoAberto] = useState(false);
   const [valoresVariaveisAberto, setValoresVariaveisAberto] = useState(false);
   const [exibirExtras, setExibirExtras] = useState(false);
   const [posicao, setPosicao] = useState(0);
-  const [calculo, setCalculo] = useState('');
+  const [calculo, setCalculo] = useState<(string|string[])[]>([]);
   const [historico, setHistorico] = useState<historicoInterface[]>(Array());
 
-  function fatorial(numero: number) {
-    return Array.from({length: numero}, (_, i) => i + 1).reduce((acumulacao, atual) => acumulacao * atual)
+  const constantes = {
+    pi: "𝝅",
+    aurea: "φ",
+    beta: 'β*',
+    //dirac: "δ",
+    vacuo: "μ",
+    gases: "L",
+    euler: "e"
   }
+
+  const botoes: [string, (string|[string]), (boolean|[boolean, boolean])?, ((char: string) => void)?][][] = [
+    [
+      ["1", "val", false, char => char === "val" ? setMostrarVariaveis(true) : adicionar(char)],
+      ["2", ["som"]],
+      ["3", ["mul"]],
+      ["+", "tan", true],
+    ],
+    [
+      ["4", ["med"]],
+      ["5", ["len"]],
+      ["6", [constantes.pi]],
+      ["-", ["sen"], true],
+    ],
+    [
+      ["7", [constantes.beta]],
+      ["8", [constantes.aurea]],
+      ["9", [constantes.gases]],
+      ["X", ["cons"], true],
+    ],
+    [
+      ["0", constantes.vacuo],
+      ["(", "%", [false, true]],
+      [")", "!", [false, true]],
+      [
+        "del", 
+        "del", 
+        true, 
+        (char: string) =>
+          setCalculo(
+            [...calculo.slice(0, calculo.length - posicao - 1),
+            ...calculo.slice(calculo.length - posicao)
+            ]
+          )
+      ]
+    ],
+    [
+      [".", ","],
+      ["/", "log", true],
+      ["^", "√", true],
+      [
+        "cls", 
+        "cls", 
+        true,
+        (char: string) => {
+          setCalculo([]);
+          setPosicao(0);
+        }
+      ]
+    ],
+  ]
+
+  // function fatorial(numero: number) {
+  //   return Array.from({length: numero}, (_, i) => i + 1).reduce((acumulacao, atual) => acumulacao * atual)
+  // }
+
+
+  const constanteEspacosas = Object.values(constantes).filter(constante => constante.length > 1)
 
   function porcentagem(num1: number, num2: number) {
     return (num2 / 100) * num1
@@ -39,168 +111,190 @@ export default function App() {
 
   const calculado = useMemo(calcular, [calculo, calcular]);
 
-  function calcular(calculoPametro: string = calculo): string {
-    if (
-      ['+', '-', '/', 'X', '^', ','].some((char) =>
-        calculoPametro.endsWith(char)
-      ) ||
-      (calculoPametro.match(/\(/g) || []).length !=
-        (calculoPametro.match(/\)/g) || []).length
-    ) {
-      return '';
-    } else if (calculoPametro == '') {
-      return '';
-    } else {
+  function calcular(calculoPametro: (string|string[])[] = calculo): string {
+    "use strin"
       try {
-        let calculoTemporario = calculoPametro;
-        calculoTemporario = calculoTemporario
-          .replaceAll('𝝅', '3.141592653')
-          .replaceAll('φ', '1.618033988')
-          .replaceAll('e', '2.718281828')
-          .replaceAll('β*', '0.70258')
-          .replaceAll('δ', '4.66920')
-          .replaceAll('L', '0.110001000')
-          .replaceAll('μ', '1.451369234')
-          .replaceAll('X', '*')
-          .replaceAll('^', '**')
-          .replaceAll(',', '.')
-          .replaceAll('a', String(valorX))
-          .replaceAll('b', String(valorY))
-          .replaceAll('c', String(valorZ));
-        for (const mathLog of calculoTemporario.matchAll(
-          /([0-9\.]*)?(\(.*?\))?log([0-9\.]*)?(\(.+?\))?/g
-        )) {
-          calculoTemporario = calculoTemporario.replace(
-            mathLog[0],
-            `Math.log(${
-              mathLog[4]
-                ? mathLog[4].replace('(', '').replace(')', '')
-                : mathLog[3]
-            }) ${
-              mathLog[1]
-                ? '/ Math.log(' +
-                  (mathLog[2]
-                    ? mathLog[2].replace(')', '').replace('(', '')
-                    : mathLog[1]) +
-                  ')'
-                : ''
-            }`
-          );
+        let calculoTemporario = calculoPametro.flat().join("");
+        const mudar = [
+          [constantes.pi, '3.141592653'],
+          [constantes.aurea, '1.618033988'],
+          // [constantes.euler, '2.718281828'],
+          [constantes.beta, '0.70258'],
+          [constantes.gases, '0.110001000'],
+          [constantes.vacuo, '1.451369234'],
+          ['X', '*'],
+          ['^', '**'],
+          // [',', '.'],
+          ...Object.entries(variaveis).sort(([var1], [var2]) => var1.length - var2.length).reverse().map(([nome, valor]) => [nome, valor instanceof  Array ? String(valor.join(",")) : String(valor)])
+        ] as const
+        
+        mudar.forEach(caracteres => 
+          calculoTemporario = calculoTemporario.replaceAll(
+            caracteres[0], 
+            caracteres[1]
+          )
+        )
+
+        const executarCalculosEspeciais = (
+          regex: RegExp, 
+          resultado: (match: RegExpMatchArray) => string
+        ) => {
+          for (const match of calculoTemporario.matchAll(
+            regex
+          )) {
+            calculoTemporario = calculoTemporario.replace(
+              match[0],
+              resultado(match)
+            );
+          }
         }
-        for (const mathRoot of calculoTemporario.matchAll(
-          /√([0-9\.])?(\(.+?\))?/g
-        )) {
-          calculoTemporario = calculoTemporario.replace(
-            mathRoot[0],
-            `Math.sqrt(${
-              mathRoot[2]
-                ? mathRoot[2].replace(/^\(/g, '').replace(/\)$/g, '')
-                : mathRoot[1]
-            })`
-          );
-        }
-        for (const mathSin of calculoTemporario.matchAll(
-          /sen([0-9\.]*)?(\(.*?\))?/g
-        )) {
-          calculoTemporario = calculoTemporario.replace(
-            mathSin[0],
-            `Math.sin(${
-              mathSin[2]
-                ? mathSin[2].replace(/^\(/g, '').replace(/\)$/g, '')
-                : mathSin[1]
-            })`
-          );
-        }
-        for (const mathCos of calculoTemporario.matchAll(
-          /cos([0-9\.]*)?(\(.*?\))?/g
-        )) {
-          calculoTemporario = calculoTemporario.replace(
-            mathCos[0],
-            `Math.cos(${
-              mathCos[2]
-                ? mathCos[2].replace(/^\(/g, '').replace(/\)$/g, '')
-                : mathCos[1]
-            })`
-          );
-        }
-        for (const mathTan of calculoTemporario.matchAll(
-          /tan([0-9\.]*)?(\(.*?\))?/g
-        )) {
-          calculoTemporario = calculoTemporario.replace(
-            mathTan[0],
-            `Math.tan(${
-              mathTan[2]
-                ? mathTan[2].replace(/^\(/g, '').replace(/\)$/g, '')
-                : mathTan[1]
-            })`
-          );
-        }
-        for (const fatorialNumero of calculoTemporario.matchAll(/(([0-9]+(\.[0-9]+)?)?(\(.*\))?)!/g)) {
-          console.log(fatorialNumero)
-          console.log("fatorial:" + eval(fatorialNumero[2]))
-          calculoTemporario = calculoTemporario.replace(
-            fatorialNumero[0],
-            `${fatorial(eval(fatorialNumero[0].startsWith("(") ? fatorialNumero[4] : fatorialNumero[2]) as number)}`
+
+        const executarCalculoSinal = (char: string, mudar: (match: RegExpMatchArray) => string, bilateral = false) => {
+          const regex = new RegExp(`([0-9]+(\\.[0-9]+)?)?(\\(.+\\))?${char}${bilateral ? "([0-9]+(\\.[0-9]+)?)" : ""}`, "g")
+          executarCalculosEspeciais(
+            regex,
+            mudar
           )
         }
-        for (const porcentagemMatch of calculoTemporario.matchAll(/([0-9]+(\.[0-9]+)?)%([0-9]+(\.[0-9]+)?)/g)) {
-          console.log(porcentagemMatch)
-          calculoTemporario = calculoTemporario.replace(
-            porcentagemMatch[0],
-            `${porcentagem(eval(porcentagemMatch[1]), eval(porcentagemMatch[3]))}`
+
+        const executarFuncoes = ({nome, bilateral, transformar} : {nome: string, bilateral?: boolean, transformar: (direita: string, esquerda: string) => string }) => {
+          // ([0-9\.]*)?(\(.*?\))?log([0-9\.]*)?(\(.+?\))?
+          const regex = new RegExp(`${bilateral ? "\\(([\.,]*?)\\)" : ""}${nome}\\((.+?)\\)`, "g")          
+          executarCalculosEspeciais(
+            regex,
+            match => {
+              const direitaIndividual = match[bilateral ? 4 : 1]
+              const direitaGrupo = match[bilateral ? 3 : 2]
+              const esquerdaIndividual = match[1]
+              const esquerdaGrupo = match[2]
+              const esquerda = esquerdaIndividual ?? esquerdaGrupo
+              const direita = direitaGrupo ?? direitaIndividual
+
+              return transformar(direita, esquerda)
+            } 
           )
         }
-        console.log(calculoTemporario)
-        return String(eval(calculoTemporario)).replace('.', ',');
-      } catch {
+
+        executarFuncoes({ 
+          nome: "som", 
+          transformar: (direita) => `som(${direita})`
+        })
+        executarFuncoes({ 
+          nome: "len", 
+          transformar: (direita) => `len(${direita})`
+        })
+        executarFuncoes({
+          nome: "mul", 
+          transformar: (direita) => `mul(${direita})`
+        })
+        executarFuncoes({
+          nome: "med", 
+          transformar: (direita) => `med(${direita})`
+        })
+        executarFuncoes({
+          nome: "len",
+          transformar: (direita) => `len(${direita})`
+        })
+
+        executarFuncoes({
+          nome: "log",
+          bilateral: true, 
+          transformar: (direita, esquerda) => `Math.log(${direita}) ${
+            esquerda
+              ? `/ Math.log(${esquerda})`
+              : ""
+          }`
+        })
+        executarFuncoes({
+          nome: "log",
+          bilateral: true, 
+          transformar: (direita, esquerda) => `Math.log(${direita}) ${
+            esquerda
+              ? `/ Math.log(${esquerda})`
+              : ""
+          }`
+        })
+          
+        executarCalculoSinal(
+          "√",
+          match => `Math.sqrt(${
+              match[2]
+                ? match[2].replace(/^\(/g, '').replace(/\)$/g, '')
+                : match[1]
+            })`
+        )
+
+        executarFuncoes({
+          nome: "sen",
+          bilateral: false, 
+          transformar: (direita, esquerda) => `Math.sin(${direita})`
+        })
+
+        executarFuncoes({
+          nome: "cos",
+          bilateral: false, 
+          transformar: (direita, esquerda) => `Math.cos(${direita})`
+        })
+
+        executarFuncoes({
+          nome: "tan",
+          bilateral: false, 
+          transformar: (direita, esquerda) => `Math.tan(${direita})`
+        })
+
+        executarCalculoSinal("!", (match) => {
+          console.log(match)
+          return `${myMath.fatorial(
+            eval(match[0].startsWith("(") ? match[3] : match[1]) as number
+          )}`
+        })
+
+        executarCalculoSinal("%", match =>  `${porcentagem(eval(match[1]), eval(match[3]))}`, true)
+
+        const evalMath = `
+        const som = (...numeros) =>  numeros.reduce((acumulacao, num) => acumulacao + num, 0);
+  const mul = (...numeros) =>numeros.reduce((acumulacao, num) => acumulacao * num, 1);
+  const med = (...numeros) => numeros.reduce((acumulacao, num) => acumulacao + num, 0) / numeros.length;
+  const len = (...numeros) => numeros.length;`
+        const resultado = eval(evalMath + calculoTemporario)
+        if (resultado == parseInt("aaa")) return 'calculo invalído'
+        if (String(resultado).startsWith("function")) return 'calculo invalído'
+        return String(conversor 
+          ? conversor(resultado)
+          : eval(resultado)
+        );
+      } 
+      catch {
         return 'calculo invalído';
       }
-    }
   }
 
   function salvar() {
-    console.log(calculo, calcular)
-    save(calculo, calcular(), valorX, valorY, valorZ)
-    setCalculo(calcular)
+    //save(calculo, calcular(), valorX, valorY, valorZ)
+    setCalculo(calcular(calculo).split(""))
   }
 
-  function remover(id: number) {
-    remove(id)
-    selectAll(setHistorico)
-  }
-  function limpar() {
-    deleteAll()
-    setHistoricoAberto(false)
-  }
+  // function remover(id: number) {
+  //   remove(id)
+  //   selectAll(setHistorico)
+  // }
+  // function limpar() {
+  //   deleteAll()
+  //   setHistoricoAberto(false)
+  // }
 
   function adicionar(valor: string): void {
-    if (calculo == '' &&
-      ['/', '^', 'X'].includes(valor)
-    ) {
-      return;
-    } else if (
-      ['+', '-', 'X', '/', '^'].includes(
-        calculo[calculo.length - posicao - 1]
-      ) &&
-      ['+', '-', 'X', '/', '^'].includes(valor)
-    ) {
       setCalculo(
-        calculo.slice(0, calculo.length - posicao - 1) +
-          valor +
-          calculo.slice(calculo.length - posicao)
+        [...calculo.slice(0, calculo.length - posicao),
+        valor,
+        ...calculo.slice(calculo.length - posicao)
+        ]
       );
-    } else {
-      setCalculo(
-        calculo.slice(0, calculo.length - posicao) +
-          (valor == 'log' ? valor + '(' : valor) +
-          calculo.slice(calculo.length - posicao)
-      );
-    }
   }
 
-  function coletarHistorico() {
-    selectAll(setHistorico)
-  }
+  // function coletarHistorico() {
+  //   selectAll(setHistorico)
+  // }
 
   function mudarPosicao(valor: number) {
     if (valor >= 0 && valor <= calculo.length) {
@@ -210,54 +304,66 @@ export default function App() {
 
   return (
     <View style={styles.app}>
-      {historicoAberto ? (
-        <ModalHistorico
-          funcaoRecuperar={(calculoAntigo: string, aAntigo: number, bAntigo: number, cAntigo: number) => {
-            setCalculo(calculoAntigo);
-            setValorX(aAntigo)
-            setValorY(bAntigo)
-            setValorZ(cAntigo)
-            setHistoricoAberto(false);
-          }}
-          funcaoFechar={() => setHistoricoAberto(false)}
-          historico={historico}
-          funcaoCalcular={calcular}
-          funcaoLimpar={limpar}
-          funcaoRemover={remover}
-        />
-      ) : (
-        ''
-      )}
+      <ModalForm 
+        visivel={mostrarFormulas}
+        setVisivel={setMostrarFormulas}
+      />
+      <ModalConversao 
+        visivel={mostrarConversao}
+        setVisivel={setMostrarConversao}
+        setConversor={setConversor}
+        setUnidades={setUnidadeAtual}
+      />
+      <ModalVariaveis
+        variaveis={variaveis}
+        setVisivel={setMostrarVariaveis}
+        visivel={mostrarVariaveis}
+        adicionar={adicionar}
+      />
+      {
+      //   historicoAberto ? (
+      //     <ModalHistorico
+      //       funcaoRecuperar={(calculoAntigo: string, aAntigo: number, bAntigo: number, cAntigo: number) => {
+      //         setCalculo(calculoAntigo);
+      //         setValorX(aAntigo)
+      //         setValorY(bAntigo)
+      //         setValorZ(cAntigo)
+      //         setHistoricoAberto(false);
+      //       }}
+      //       funcaoFechar={() => setHistoricoAberto(false)}
+      //       historico={historico}
+      //       funcaoCalcular={calcular}
+      //       funcaoLimpar={limpar}
+      //       funcaoRemover={remover}
+      //     />
+      //   ) : (
+      //     ''
+      //   )
+      }
       {
         valoresVariaveisAberto ? <ModalVariaveisValores 
-          x={() => valorX}
-          y={() => valorY}
-          z={() => valorZ}
+          setVariaveis={setVariaveis}
+          variaveis={variaveis}
           funcaoFechar={()=> setValoresVariaveisAberto(false)}
-          funcaoCeder={(variavel: string, novoValor: number)=> {
-            if (variavel == "x") {
-              setValorX(novoValor)
-            }
-            else if (variavel == "y") {
-              setValorY(novoValor)
-            }
-            else {
-              setValorZ(novoValor)
-            }
-          }
-          }
         />
         : ''
       }
 
       <View style={styles.calculadora}>
-        <Visor calculado={calculado} valorX={valorX} valorY={valorY} valorZ={valorZ} calculo={calculo} posicao={posicao} />
+        <Visor 
+          calculado={calculado} 
+          variaveis={variaveis}
+          calculo={calculo} 
+          posicao={posicao} 
+          unidadeBase={unidadeAtual?.base}
+          unidadeTransformar={unidadeAtual?.transformar}
+        />
         <View style={styles.entrada}>
           <View style={styles.opcoes}>
             <Botao
               funcao={() => {
                 setHistoricoAberto(true);
-                coletarHistorico();
+                //coletarHistorico();
               }}
               styles={{ alignSelf: 'flex-end' }}
               texto="H"
@@ -267,91 +373,36 @@ export default function App() {
                 setValoresVariaveisAberto(true)
               }}
               styles={{ alignSelf: 'flex-end' }}
-              texto="XYZ"
+              texto="Z"
             />
             <Botao
               funcao={() => setExibirExtras(!exibirExtras)}
               styles={{ alignSelf: 'flex-end' }}
               texto="V"
             />
-          </View>
-          <View style={styles.opcoes}>
-            <Botao funcao={adicionar} texto={exibirExtras ? 'a' : '1'} />
-            <Botao funcao={adicionar} texto={exibirExtras ? 'b' : '2'} />
-            <Botao funcao={adicionar} texto={exibirExtras ? 'c' : '3'} />
             <Botao
-              funcao={adicionar}
-              especial={true}
-              texto={exibirExtras ? 'tan' : '+'}
+              funcao={() => setMostrarFormulas(true)}
+              styles={{ alignSelf: 'flex-end' }}
+              texto="F"
             />
-          </View>
-          <View style={styles.opcoes}>
-            <Botao funcao={adicionar} texto={exibirExtras ? '𝝅' : '4'} />
-            <Botao funcao={adicionar} texto={exibirExtras ? 'e' :'5'} />
-            <Botao funcao={adicionar} texto={exibirExtras ? 'φ' :'6'} />
             <Botao
-              funcao={adicionar}
-              especial={true}
-              texto={exibirExtras ? 'sen' : '-'}
+              funcao={() => setMostrarConversao(true)}
+              styles={{ alignSelf: 'flex-end' }}
+              texto="C"
             />
           </View>
-          <View style={styles.opcoes}>
-            <Botao funcao={adicionar} texto={exibirExtras ? 'β*' :'7'} />
-            <Botao funcao={adicionar} texto={exibirExtras ? 'δ' : '8'} />
-            <Botao funcao={adicionar} texto={exibirExtras ? 'L' : '9'} />
-            <Botao
-              funcao={adicionar}
-              especial={true}
-              texto={exibirExtras ? 'cos' : 'X'}
-            />
-          </View>
-          <View style={styles.opcoes}>
-            <Botao funcao={adicionar} texto={exibirExtras ? 'μ' :"0"} />
-            <Botao 
-              funcao={adicionar} 
-              texto={exibirExtras ? "%" : "("} 
-              especial={exibirExtras}
-            />
-
-
-            <Botao 
-              funcao={adicionar} 
-              especial={exibirExtras}
-              texto={exibirExtras ? "!" : ")"} 
-            />
-
-            <Botao
-              funcao={(char: string) =>
-                setCalculo(
-                  calculo.slice(0, calculo.length - posicao - 1) +
-                    calculo.slice(calculo.length - posicao)
-                )
-              }
-              especial={true}
-              texto="del"
-            />
-          </View>
-          <View style={styles.opcoes}>
-            <Botao funcao={adicionar} texto="," />
-            <Botao
-              funcao={adicionar}
-              especial={true}
-              texto={exibirExtras ? 'log' : '/'}
-            />
-            <Botao
-              funcao={adicionar}
-              especial={true}
-              texto={exibirExtras ? '√' : '^'}
-            />
-            <Botao
-              funcao={(char: string) => {
-                setCalculo('');
-                setPosicao(0);
-              }}
-              especial={true}
-              texto="cls"
-            />
-          </View>
+          {
+            botoes.map(conjunto => <View style={styles.opcoes}>
+            {
+              conjunto.map(botao => <Botao
+                key={botao[0]}
+                funcao={botao[3] ? botao[3] : adicionar}
+                especial={botao[2] instanceof Array ? botao[2][exibirExtras ? 1 : 0] : botao[2]}
+                texto={exibirExtras ? (botao[1] instanceof Array ? botao[1][0] : botao[1] ) : botao[0]}
+              />
+            )}
+            </View>)
+          }
           <View style={styles.opcoes}>
             <Botao
               funcao={(char: string) => mudarPosicao(posicao + 1)}

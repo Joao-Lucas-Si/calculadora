@@ -17,7 +17,7 @@ export interface historicoInterface {
   c: number
 }
 
-const db = SQLite.openDatabase('../bd.db');
+const db = SQLite.openDatabaseSync('../bd.db');
 
 export function save(calculo: string, resultado: string, a: number, b:number, c:number) {
   db.transaction((tx) => {

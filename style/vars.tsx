@@ -6,3 +6,7 @@ export default {
   roxoEscuro: "#6b2177",
   roxoMedio: "#a63ed6"
 }
+
+export const tamanhosFontes = {
+  
+}
