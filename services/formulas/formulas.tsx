@@ -11,6 +11,10 @@ import Retangulo from './geometria/Retangulo'
 import Circulo from './geometria/Circulo'
 import Trapezio from './geometria/Trapezio'
 import DensidadeDemografica from "./geografia/DensidadeDemografica"
+import Serie from "./resistores/Serie"
+import Paralelo from "./resistores/Paralelo"
+import Misto from "./resistores/Misto"
+import MMC from "./Outros/MCC"
 
 export default {
   "estatisticas": [
@@ -33,5 +37,13 @@ export default {
   ],
   "geográfia": [
     DensidadeDemografica
+  ],
+  "resistores": [
+    Serie,
+    Paralelo,
+    Misto
+  ],
+  "outros": [
+    MMC,
   ]
 } as const

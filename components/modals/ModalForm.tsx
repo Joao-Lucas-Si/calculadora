@@ -69,12 +69,14 @@ export default function ModalForm({visivel, setVisivel}: {visivel: boolean, setV
                     textAlign: "center"
                   }}
                 >passos</Text>
-                {formulaAtual.obterPassos(formulaValores as any).map(passo => <Text
-                  key={passo}
-                  style={{
-                    color: "#ffffff"
-                  }}
-                >{passo}</Text>)}
+                {formulaAtual.obterPassos(formulaValores as any).map(passo => typeof passo ==="string" 
+                  ? <Text
+                      style={{
+                        color: "#ffffff"
+                      }}
+                    >{passo}</Text> 
+                  : passo
+                )}
                 <Text
                   style={{
                     color: "#ffffff"

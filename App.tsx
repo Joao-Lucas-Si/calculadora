@@ -395,7 +395,6 @@ export default function App() {
             botoes.map(conjunto => <View style={styles.opcoes}>
             {
               conjunto.map(botao => <Botao
-                key={botao[0]}
                 funcao={botao[3] ? botao[3] : adicionar}
                 especial={botao[2] instanceof Array ? botao[2][exibirExtras ? 1 : 0] : botao[2]}
                 texto={exibirExtras ? (botao[1] instanceof Array ? botao[1][0] : botao[1] ) : botao[0]}

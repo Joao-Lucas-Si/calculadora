@@ -1,7 +1,7 @@
 import { UnidadeConversao, UnidadeDados} from "./Types"
 import { conversor } from "./generico"
 
-const unidadesArray = ["quilolitro", "hectolitro", "decalitro", "litro", "decilitro", "centilitro", "mililitro"] as const
+export const unidadesArray = ["quilolitro", "hectolitro", "decalitro", "litro", "decilitro", "centilitro", "mililitro"] as const
 
 type Unidades = typeof unidadesArray[number]
 
