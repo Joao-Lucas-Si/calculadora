@@ -3,7 +3,6 @@ export const conversor = (unidades: string[], distancia: number = 10, extra: num
   const transformarIndice = (unidades.findIndex(unidade => unidade === transformar) ?? 0) + 1
 
   const diferenca = (baseIndice < transformarIndice ? transformarIndice - baseIndice : baseIndice - transformarIndice) * extra
-  console.log(diferenca)
   return baseIndice < transformarIndice ? conversorMaior(diferenca, distancia) : conversorMenor(diferenca, distancia)
 
 }

@@ -36,6 +36,7 @@ export default async function create() {
     );
     create table if not exists formula (
       id integer primary key autoincrement,
+      calculo text not null,
       nome text not null
     );
     create table if not exists variavel (
@@ -52,4 +53,8 @@ export default async function create() {
       variavel_id integer references variavel(id) on delete cascade
     );
   `);
+  const temCalculo = await db.getFirstAsync<{has: number}>(`select count(*) as has from pragma_table_info('formula') where name= 'calculo'`)
+  if (temCalculo?.has === 0) {
+    await db.runAsync(`alter table formula add calculo text not null`)
+  }
 }

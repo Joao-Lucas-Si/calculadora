@@ -12,7 +12,6 @@ const DesvioPadrao: Formula<{ items: number[] }> = {
   ],
   obterPassos: ({ items }) => {
     const variancia = myMath.med(...items.map(item =>  (item - myMath.med(...items)) ** 2))
-    console.log(...Variancia.obterPassos({ items }))
     return [
      ...Variancia.obterPassos({ items }),
      `√${variancia}`,

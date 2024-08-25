@@ -25,7 +25,6 @@ export default function EntradaTexto({ titulo, setValor, valorPadroa }: { titulo
       <TextInput 
         value={texto}
         onChangeText={text => setTexto(text)}
-        keyboardType="numeric"  
         style={{
           backgroundColor: "#ffffff",
           padding: 5,

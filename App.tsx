@@ -194,7 +194,6 @@ export default function App() {
         })
 
         executarCalculoSinal("!", (match) => {
-          console.log(match)
           return `${myMath.fatorial(
             eval(match[0].startsWith("(") ? match[3] : match[1]) as number
           )}`

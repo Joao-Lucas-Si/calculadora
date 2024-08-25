@@ -18,8 +18,8 @@ export default function ModalHistorico(props: props) {
   const [historicos, setHistoricos] = useState<Historico[]>([])
 
   useEffect(() => {
-    HistoricoService.coletarTodos(setHistoricos)
-  }, [])
+    if (props.visivel) HistoricoService.coletarTodos(setHistoricos)
+  }, [props.visivel])
 
   function remover(id: number) {
     HistoricoService.deletar(id)
