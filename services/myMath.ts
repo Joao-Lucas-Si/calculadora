@@ -14,6 +14,15 @@ export default {
     }
     return true
   },
+  constantes: {
+    pi: "𝝅",
+    aurea: "φ",
+    beta: 'β*',
+    //dirac: "δ",
+    vacuo: "μ",
+    gases: "L",
+    euler: "e"
+  },
   som: (...numeros: number[]) =>  numeros.reduce((acumulacao, num) => acumulacao + num, 0),
   mul: (...numeros: number[]) =>numeros.reduce((acumulacao, num) => acumulacao * num, 1),
   med: (...numeros: number[]) => numeros.reduce((acumulacao, num) => acumulacao + num, 0) / numeros.length,

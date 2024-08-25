@@ -15,106 +15,56 @@ import myMath from "./services/myMath"
 import { Card } from 'react-native-paper';
 import Botao from './components/Botao';
 import styleVars from './style/vars';
-import { save, deleteAll, selectAll, historicoInterface, remove } from "./models/DB"
-// import create from "./models/DB"
-// import ModalHistorico from './components/ModalHistorico';
+import create, { Variavel, Historico } from "./models/DB"
+import FormulaCustomizada from "./components/modals/FormulaCustomizada"
+import * as HistoricoService from "./models/calculo"
+import ModalHistorico from './components/modals/ModalHistorico';
 import { UnidadeDados } from "./services/conversao/Types"
-import ModalVariaveisValores from "./components/ModalVariaveisValores"
+import ModalVariaveisValores from "./components/modals/ModalVariaveisValores"
 import ModalVariaveis from "./components/modals/ModalVariaveis"
+import Teclado from "./components/Teclado"
 
 export default function App() {
-  // create()
   const [unidadeAtual, setUnidadeAtual] = useState<Record<"base"|"transformar", UnidadeDados>|undefined>()
   const [mostrarConversao, setMostrarConversao] = useState(false)
   const [conversor, setConversor] = useState<((base: number) => number)|undefined>(undefined)
+  const [mostrarFormulaCustomizada, setMostrarFormulaCustomizada] = useState(false)
   const [mostrarVariaveis, setMostrarVariaveis] = useState(false)
   const [mostrarFormulas, setMostrarFormulas] = useState(false)
   const [variaveis, setVariaveis] = useState<Record<string, number|number[]>>({})
   const [historicoAberto, setHistoricoAberto] = useState(false);
   const [valoresVariaveisAberto, setValoresVariaveisAberto] = useState(false);
-  const [exibirExtras, setExibirExtras] = useState(false);
   const [posicao, setPosicao] = useState(0);
-  const [calculo, setCalculo] = useState<(string|string[])[]>([]);
-  const [historico, setHistorico] = useState<historicoInterface[]>(Array());
+  const [calculo, setCalculo] = useState<string[]>([]);
 
-  const constantes = {
-    pi: "𝝅",
-    aurea: "φ",
-    beta: 'β*',
-    //dirac: "δ",
-    vacuo: "μ",
-    gases: "L",
-    euler: "e"
+  useEffect(() => {
+    create()
+  }, [])
+
+  function limpar() {
+    setCalculo([]);
+    setPosicao(0);
   }
 
-  const botoes: [string, (string|[string]), (boolean|[boolean, boolean])?, ((char: string) => void)?][][] = [
-    [
-      ["1", "val", false, char => char === "val" ? setMostrarVariaveis(true) : adicionar(char)],
-      ["2", ["som"]],
-      ["3", ["mul"]],
-      ["+", "tan", true],
-    ],
-    [
-      ["4", ["med"]],
-      ["5", ["len"]],
-      ["6", [constantes.pi]],
-      ["-", ["sen"], true],
-    ],
-    [
-      ["7", [constantes.beta]],
-      ["8", [constantes.aurea]],
-      ["9", [constantes.gases]],
-      ["X", ["cons"], true],
-    ],
-    [
-      ["0", constantes.vacuo],
-      ["(", "%", [false, true]],
-      [")", "!", [false, true]],
-      [
-        "del", 
-        "del", 
-        true, 
-        (char: string) =>
-          setCalculo(
-            [...calculo.slice(0, calculo.length - posicao - 1),
-            ...calculo.slice(calculo.length - posicao)
-            ]
-          )
+  function deletar() {
+    setCalculo(
+      [...calculo.slice(0, calculo.length - posicao - 1),
+      ...calculo.slice(calculo.length - posicao)
       ]
-    ],
-    [
-      [".", ","],
-      ["/", "log", true],
-      ["^", "√", true],
-      [
-        "cls", 
-        "cls", 
-        true,
-        (char: string) => {
-          setCalculo([]);
-          setPosicao(0);
-        }
-      ]
-    ],
-  ]
+    )
+  }
 
-  // function fatorial(numero: number) {
-  //   return Array.from({length: numero}, (_, i) => i + 1).reduce((acumulacao, atual) => acumulacao * atual)
-  // }
-
-
-  const constanteEspacosas = Object.values(constantes).filter(constante => constante.length > 1)
-
+  const constantes = myMath.constantes
+  
   function porcentagem(num1: number, num2: number) {
     return (num2 / 100) * num1
   }
 
   const calculado = useMemo(calcular, [calculo, calcular]);
 
-  function calcular(calculoPametro: (string|string[])[] = calculo): string {
-    "use strin"
+  function calcular(calculoPametro: string[] = calculo, variaveisParametro = variaveis): string {
       try {
-        let calculoTemporario = calculoPametro.flat().join("");
+        let calculoTemporarioArray = calculoPametro;
         const mudar = [
           [constantes.pi, '3.141592653'],
           [constantes.aurea, '1.618033988'],
@@ -125,15 +75,16 @@ export default function App() {
           ['X', '*'],
           ['^', '**'],
           // [',', '.'],
-          ...Object.entries(variaveis).sort(([var1], [var2]) => var1.length - var2.length).reverse().map(([nome, valor]) => [nome, valor instanceof  Array ? String(valor.join(",")) : String(valor)])
+          ...Object.entries(variaveisParametro).sort(([var1], [var2]) => var1.length - var2.length).reverse().map(([nome, valor]) => [nome, valor instanceof  Array ? String(valor.join(",")) : String(valor)])
         ] as const
         
-        mudar.forEach(caracteres => 
-          calculoTemporario = calculoTemporario.replaceAll(
-            caracteres[0], 
-            caracteres[1]
-          )
-        )
+        calculoTemporarioArray = calculoTemporarioArray.map(caractere => {
+          const mudanca = mudar.find(mudar => mudar[0] === caractere)
+
+          return mudanca ? mudanca[1] : caractere
+        })
+
+        let calculoTemporario = calculoTemporarioArray.join("")
 
         const executarCalculosEspeciais = (
           regex: RegExp, 
@@ -227,19 +178,19 @@ export default function App() {
         executarFuncoes({
           nome: "sen",
           bilateral: false, 
-          transformar: (direita, esquerda) => `Math.sin(${direita})`
+          transformar: (direita) => `Math.sin(${direita})`
         })
 
         executarFuncoes({
           nome: "cos",
           bilateral: false, 
-          transformar: (direita, esquerda) => `Math.cos(${direita})`
+          transformar: (direita) => `Math.cos(${direita})`
         })
 
         executarFuncoes({
           nome: "tan",
           bilateral: false, 
-          transformar: (direita, esquerda) => `Math.tan(${direita})`
+          transformar: (direita) => `Math.tan(${direita})`
         })
 
         executarCalculoSinal("!", (match) => {
@@ -252,10 +203,11 @@ export default function App() {
         executarCalculoSinal("%", match =>  `${porcentagem(eval(match[1]), eval(match[3]))}`, true)
 
         const evalMath = `
-        const som = (...numeros) =>  numeros.reduce((acumulacao, num) => acumulacao + num, 0);
-  const mul = (...numeros) =>numeros.reduce((acumulacao, num) => acumulacao * num, 1);
-  const med = (...numeros) => numeros.reduce((acumulacao, num) => acumulacao + num, 0) / numeros.length;
-  const len = (...numeros) => numeros.length;`
+          const som = (...numeros) =>  numeros.reduce((acumulacao, num) => acumulacao + num, 0);
+          const mul = (...numeros) =>numeros.reduce((acumulacao, num) => acumulacao * num, 1);
+          const med = (...numeros) => numeros.reduce((acumulacao, num) => acumulacao + num, 0) / numeros.length;
+          const len = (...numeros) => numeros.length;
+        `
         const resultado = eval(evalMath + calculoTemporario)
         if (resultado == parseInt("aaa")) return 'calculo invalído'
         if (String(resultado).startsWith("function")) return 'calculo invalído'
@@ -270,7 +222,25 @@ export default function App() {
   }
 
   function salvar() {
-    //save(calculo, calcular(), valorX, valorY, valorZ)
+    HistoricoService.salvar({
+      id: 0,
+      calculo: calculo.join("|"),
+      resultado: calcular(calculo),
+      variaveis: Object.entries(variaveis).map<Variavel>(([nome, valor]) => valor instanceof Array ?
+        {
+          tipo: "lista",
+          nome,
+          id: 0,
+          valores: valor
+        }
+      : {
+          tipo: "normal",
+          id: 0,
+          nome,
+          valor
+        }
+      )
+    })
     setCalculo(calcular(calculo).split(""))
   }
 
@@ -305,6 +275,7 @@ export default function App() {
   return (
     <View style={styles.app}>
       <ModalForm 
+        calcular={calcular}
         visivel={mostrarFormulas}
         setVisivel={setMostrarFormulas}
       />
@@ -320,34 +291,28 @@ export default function App() {
         visivel={mostrarVariaveis}
         adicionar={adicionar}
       />
-      {
-      //   historicoAberto ? (
-      //     <ModalHistorico
-      //       funcaoRecuperar={(calculoAntigo: string, aAntigo: number, bAntigo: number, cAntigo: number) => {
-      //         setCalculo(calculoAntigo);
-      //         setValorX(aAntigo)
-      //         setValorY(bAntigo)
-      //         setValorZ(cAntigo)
-      //         setHistoricoAberto(false);
-      //       }}
-      //       funcaoFechar={() => setHistoricoAberto(false)}
-      //       historico={historico}
-      //       funcaoCalcular={calcular}
-      //       funcaoLimpar={limpar}
-      //       funcaoRemover={remover}
-      //     />
-      //   ) : (
-      //     ''
-      //   )
-      }
-      {
-        valoresVariaveisAberto ? <ModalVariaveisValores 
+      <FormulaCustomizada 
+        setVisivel={setMostrarFormulaCustomizada}
+        visivel={mostrarFormulaCustomizada}
+        calculo={calculo}
+        variaveis={variaveis}
+      />
+      <ModalHistorico
+        visivel={historicoAberto}
+        funcaoRecuperar={(calculoAntigo, variaveis) => {
+          setCalculo(calculoAntigo.split("|"));
+          setVariaveis(variaveis)
+          setHistoricoAberto(false);
+        }}
+        funcaoFechar={() => setHistoricoAberto(false)}
+        funcaoCalcular={calcular}
+      />
+      <ModalVariaveisValores 
+          visivel={valoresVariaveisAberto}
           setVariaveis={setVariaveis}
           variaveis={variaveis}
           funcaoFechar={()=> setValoresVariaveisAberto(false)}
         />
-        : ''
-      }
 
       <View style={styles.calculadora}>
         <Visor 
@@ -358,77 +323,27 @@ export default function App() {
           unidadeBase={unidadeAtual?.base}
           unidadeTransformar={unidadeAtual?.transformar}
         />
-        <View style={styles.entrada}>
-          <View style={styles.opcoes}>
-            <Botao
-              funcao={() => {
-                setHistoricoAberto(true);
-                //coletarHistorico();
-              }}
-              styles={{ alignSelf: 'flex-end' }}
-              texto="H"
-            />
-            <Botao
-              funcao={() => {
-                setValoresVariaveisAberto(true)
-              }}
-              styles={{ alignSelf: 'flex-end' }}
-              texto="Z"
-            />
-            <Botao
-              funcao={() => setExibirExtras(!exibirExtras)}
-              styles={{ alignSelf: 'flex-end' }}
-              texto="V"
-            />
-            <Botao
-              funcao={() => setMostrarFormulas(true)}
-              styles={{ alignSelf: 'flex-end' }}
-              texto="F"
-            />
-            <Botao
-              funcao={() => setMostrarConversao(true)}
-              styles={{ alignSelf: 'flex-end' }}
-              texto="C"
-            />
-          </View>
-          {
-            botoes.map(conjunto => <View style={styles.opcoes}>
-            {
-              conjunto.map(botao => <Botao
-                funcao={botao[3] ? botao[3] : adicionar}
-                especial={botao[2] instanceof Array ? botao[2][exibirExtras ? 1 : 0] : botao[2]}
-                texto={exibirExtras ? (botao[1] instanceof Array ? botao[1][0] : botao[1] ) : botao[0]}
-              />
-            )}
-            </View>)
-          }
-          <View style={styles.opcoes}>
-            <Botao
-              funcao={(char: string) => mudarPosicao(posicao + 1)}
-              especial={true}
-              texto="<"
-            />
-            <Botao
-              funcao={(char: string) => salvar()}
-              especial={true}
-              texto="="
-            />
-            <Botao
-              funcao={(char: string) => mudarPosicao(posicao - 1)}
-              especial={true}
-              texto=">"
-            />
-          </View>
-        </View>
+        <Teclado 
+          adicionar={adicionar}
+          deletar={deletar}
+          limpar={limpar}
+          salvar={salvar}
+          setMostrarVariaveis={setMostrarVariaveis}
+          mudarPosicao={mudarPosicao}
+          posicao={posicao}
+          setHistoricoAberto={setHistoricoAberto}
+          setMostrarConversao={setMostrarConversao}
+          setMostrarFormulaCustomizada={setMostrarFormulaCustomizada}
+          setMostrarFormulas={setMostrarFormulas}
+          setValoresVariaveisAberto={setValoresVariaveisAberto}
+        />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  entrada: {
-    flex: 1,
-  },
+  
   
   app: {
     flex: 1,
@@ -446,19 +361,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: styleVars.fundo,
     overflow: 'hidden',
-
     gap: 10,
-  },
-  opcoes: {
-    flex: 2,
-    flexWrap: 'nowrap',
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignContent: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    width: '100%',
-    paddingHorizontal: 10,
-    height: 70,
-  },
+  }, 
 });

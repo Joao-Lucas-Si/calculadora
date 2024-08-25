@@ -2,6 +2,7 @@ import { useMemo } from "react"
 import {Text, View, ScrollView, StyleSheet} from "react-native"
 import { UnidadeDados } from "../services/conversao/Types"
 import styleVars from "../style/vars"
+import VisualizadorVariaveis from "./VisualizadorVariaveis"
 
 interface props {
   unidadeBase: UnidadeDados|undefined,
@@ -49,7 +50,7 @@ export default function Visor({ calculo, unidadeBase, unidadeTransformar, calcul
           color: styleVars.roxoClaro,
           fontSize: 25,
         }}>
-        {calculado}
+        {calculado == "undefined" ? "" : calculado}
       </Text>
       <Text
         style={{
@@ -58,7 +59,7 @@ export default function Visor({ calculo, unidadeBase, unidadeTransformar, calcul
           color: styleVars.roxoClaro
         }}
       >{unidadeTransformar?.unidade ?? ""}</Text>
-      <Text>{Object.entries(variaveis).map(([nome, valor]) => `${nome}=${valor instanceof Array ? valor.join(","): valor}`).join(", ")}</Text>
+      <VisualizadorVariaveis variaveis={variaveis} />
     </View>
   )
 }

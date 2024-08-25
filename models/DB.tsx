@@ -1,110 +1,55 @@
 import * as SQLite from 'expo-sqlite';
 
-interface selectInterface {
-  _array: historicoInterface[];
-}
-
-interface result {
-  rows: selectInterface;
-}
-
-export interface historicoInterface {
+export interface Historico {
   id: number,
   calculo: string,
   resultado: string,
-  a: number,
-  b: number,
-  c: number
+  variaveis: Variavel[]
 }
 
-const db = SQLite.openDatabaseSync('../bd.db');
+export type Variavel = {
+  id: number,
+  tipo: "normal"|"lista"
+  nome: string,
+} & ({ tipo: "lista", valores: number[] }|{ tipo: "normal", valor: number})
 
-export function save(calculo: string, resultado: string, a: number, b:number, c:number) {
-  db.transaction((tx) => {
-    tx.executeSql(
-      `insert into calculo (calculo, resultado, a, b, c) values (?,?,?,?,?)`,
-      [calculo, resultado, a, b, c],
-      (_, result) => {
-        console.log('Inserido com sucesso!');
-      },
-      (_, error) => {
-        console.log('Erro ao inserir:', error);
-        return true;
-      }
-    );
-  });
+export interface VariavelValor {
+  id: number,
+  valor: number
 }
 
-export function deleteAll() {
-  db.transaction((tx) => {
-    tx.executeSql(
-      `delete from calculo`,
-      [],
-      (_, result) => {
-        console.log('limpado com sucesso!');
-      },
-      (_, error) => {
-        console.log('Erro ao limpar:', error);
-        return true;
-      }
-    );
-  });
+export interface Formula {
+  id: number,
+  calculo: string,
+  nome: string,
+  parametros: Variavel[]
 }
 
-export function remove(id: number) {
-  db.transaction((tx) => {
-    tx.executeSql(
-      `delete from calculo
-       where id = ${id}
-      `,
-      [],
-      (_, result) => {
-        console.log('limpado deletado com sucesso!');
-      },
-      (_, error) => {
-        console.log('Erro ao limpar:', error);
-        return true;
-      }
-    );
-  });
-}
+export const db = SQLite.openDatabaseSync('../bd.db');
 
-export function selectAll(setter: (rows: historicoInterface[]) => void) {
-  db.transaction((tx) => {
-    tx.executeSql(
-      `select * from calculo`,
-      [],
-      (_, result: result) => {
-        console.log(result.rows._array);
-        setter(result.rows._array);
-      },
-      (_, error) => {
-        console.log('Erro ao selecionar:', error);
-        return true;
-      }
-    );
-  });
-}
-
-export default function create() {
-db.transaction((tx) => {
-    tx.executeSql(
-      `create table if not exists calculo (
+export default async function create() {
+  await db.execAsync( `
+    create table if not exists calculo (
       id integer primary key AUTOINCREMENT,
-      calculo varchar(500),
-      resultado varchar(500),
-      a numeric,
-      b numeric,
-      c numeric
-      )`,
-      [],
-      (_, result) => {
-        console.log('criado com sucesso!');
-      },
-      (_, error) => {
-        console.log('Erro ao criar:', error);
-        return true;
-      }
+      calculo text not null,
+      resultado text not null
     );
-  });
+    create table if not exists formula (
+      id integer primary key autoincrement,
+      nome text not null
+    );
+    create table if not exists variavel (
+      id integer primary key autoincrement,
+      tipo text not null,
+      valor number null,
+      nome text not null,
+      calculo_id integer null references calculo(id) on delete cascade,
+      formula_id integer null references formula(id) on delete cascade
+    );
+    create table if not exists variavel_valor (
+      id integer primary key autoincrement,
+      valor number not null,
+      variavel_id integer references variavel(id) on delete cascade
+    );
+  `);
 }

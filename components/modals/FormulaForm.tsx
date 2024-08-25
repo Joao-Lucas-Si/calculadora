@@ -1,8 +1,9 @@
-import { DefinicaoFormulario } from "../services/formulas/Types"
-import ListaNumeros from "./forms/ListaNumeros"
-import EntradaNumero from "./forms/EntradaNumero"
+import { DefinicaoFormulario } from "../../services/formulas/Types"
+import ListaNumeros from "../forms/ListaNumeros"
+import EntradaNumero from "../forms/EntradaNumero"
 import { useReducer, useEffect, useState } from "react"
 import { View, ScrollView, Text, Button, Touchable, Modal } from "react-native"
+
 
 function reducer(state: Record<string, any>, action: (state: Record<string, any>) => Record<string, any>) {
   return action(state)
@@ -15,9 +16,9 @@ export default function FormulaForm({ definicao, setValor }: {
   const [state, dispatch] = useReducer(reducer, {})
   const [camposDinamicos, setCamposDinamicos] = useState<DefinicaoFormulario[]>([])
 
-  useEffect(() => {
-    console.log(camposDinamicos)
-  }, [camposDinamicos])
+  // useEffect(() => {
+  //   console.log(camposDinamicos)
+  // }, [camposDinamicos])
 
   useEffect(() => setValor({...state}), [state])
 
@@ -39,14 +40,15 @@ export default function FormulaForm({ definicao, setValor }: {
   >
     {definicao.map(campo => campo.type === "listaNumeros" 
       ? <ListaNumeros
+      key={campo.nome}
       titulo={campo.titulo}
       setValor={mudarValor(campo)}
     /> 
       : campo.type === "adicionar" 
         ? <Button 
+            key={campo.nome}
             title={campo.titulo}
             onPress={() => {
-              console.log(campo.nome)
 
               setCamposDinamicos([...camposDinamicos, {
                 nome: campo.nome,
@@ -62,6 +64,7 @@ export default function FormulaForm({ definicao, setValor }: {
           />
         : campo.type === "adicionarLista"
           ? <Button 
+            key={campo.nome}
             title={campo.titulo}
             onPress={() => {
               setCamposDinamicos([...camposDinamicos, {
@@ -77,6 +80,7 @@ export default function FormulaForm({ definicao, setValor }: {
             }}
           />
           : <EntradaNumero
+              key={campo.nome}
               titulo={campo.titulo}
               opcional={campo.opcional}
               setValor={mudarValor(campo)}
@@ -85,10 +89,12 @@ export default function FormulaForm({ definicao, setValor }: {
     {
       camposDinamicos.map((campo, i) => campo.type === "listaNumeros" 
         ? <ListaNumeros
+          key={campo.titulo}
           titulo={campo.titulo}
           setValor={mudarValorDinamico(campo, i)}
         /> 
         : <EntradaNumero
+            key={campo.titulo}
             titulo={campo.titulo}
             opcional={campo.opcional}
             setValor={mudarValorDinamico(campo, i)}

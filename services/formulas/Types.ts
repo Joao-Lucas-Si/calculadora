@@ -4,7 +4,7 @@ export type DefinicaoFormulario = {
   titulo: string,
   nome: string,
   opcional?: boolean,
-  type: "numero"|"listaNumeros"|"selecao"|"adicionarLista"|"adicionar"
+  type: "numero"|"listaNumeros"|"selecao"|"adicionarLista"|"adicionar"|"texto"|"duplo"
 } & ({
   type: "adicionarLista"|"adicionar",
   tituloDinamico: string

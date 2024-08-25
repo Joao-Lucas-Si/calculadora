@@ -1,6 +1,9 @@
 import Mediana from "./estatisticas/mediana"
 import Moda from "./estatisticas/moda"
 import Media from "./estatisticas/media"
+import Variancia from "./estatisticas/Variancia"
+import DesvioMedio from "./estatisticas/DesvioMedio"
+import DesvioPadrao from "./estatisticas/DesvioPadrao"
 import Arranjo from "./combinatoria/Arranjo"
 import Combinacao from "./combinatoria/combinacao"
 import Permutacao from "./combinatoria/permutacao"
@@ -20,7 +23,10 @@ export default {
   "estatisticas": [
     Mediana,
     Moda,
-    Media
+    Media,
+    Variancia,
+    DesvioMedio,
+    DesvioPadrao
   ],
   "analíse combinatória": [
     Permutacao,
