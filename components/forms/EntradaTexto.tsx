@@ -9,7 +9,7 @@ export default function EntradaTexto({ titulo, setValor, valorPadroa }: { titulo
     if (texto) setValor(texto)
   }, [texto])
 
-  return <View>
+  return <View style={{ flex: 1 }}>
       <Text
         style={{
           color: "#ffffff"
@@ -17,9 +17,9 @@ export default function EntradaTexto({ titulo, setValor, valorPadroa }: { titulo
       >{titulo}</Text>
     <View
       style={{
-        flex: 1,
         flexDirection: "row",
-        justifyContent: "center"
+        justifyContent: "center",
+        width: "100%"
       }}
     >
       <TextInput 
@@ -28,7 +28,7 @@ export default function EntradaTexto({ titulo, setValor, valorPadroa }: { titulo
         style={{
           backgroundColor: "#ffffff",
           padding: 5,
-          width: 200
+          width: "100%"
         }}
       />
     </View>

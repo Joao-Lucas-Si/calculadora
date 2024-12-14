@@ -1,5 +1,6 @@
 {
   "expo": {
+    "newArchEnabled": true,
     "name": "calculadora",
     "slug": "snack-219e9709-2809-4f92-8ecd-da9ecfe2156f",
     "version": "2.2.0",

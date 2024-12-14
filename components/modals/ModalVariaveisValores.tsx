@@ -60,8 +60,8 @@ export default function ModalVariaveisValores(props: props) {
                 gap: 5,
                 justifyContent: "center",
                 alignContent: "center",
-                alignItems: "flex-start",
-
+                alignItems: "center",
+                width: "100%",
                 flexDirection: "row"
               }}
             >

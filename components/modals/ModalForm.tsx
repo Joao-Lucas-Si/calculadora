@@ -74,6 +74,7 @@ export default function ModalForm({visivel, setVisivel, calcular}: {visivel: boo
               >passos</Text>
               {formulaAtual.obterPassos(formulaValores as any).map(passo => typeof passo ==="string" 
                 ? <Text
+                    key={passo}
                     style={{
                       color: "#ffffff"
                     }}

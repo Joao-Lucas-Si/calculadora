@@ -42,7 +42,7 @@ export default function Teclado({
       ["7", constantes.pi],
       ["8", constantes.aurea],
       ["9", constantes.gases],
-      ["X", ["cons", "cons("], true],
+      ["X", ["cos", "cos("], true],
     ],
     [
       ["0", constantes.vacuo],

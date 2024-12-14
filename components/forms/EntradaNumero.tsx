@@ -11,7 +11,7 @@ export default function EntradaNumero({ titulo, setValor, opcional, valorPadroa 
     else if (numero) setValor(numero)
   }, [numero, opcional])
 
-  return <View>
+  return <View style={{ flexDirection: "column", justifyContent: "flex-start" }}>
       <Text
         style={{
           color: "#ffffff"
@@ -19,7 +19,6 @@ export default function EntradaNumero({ titulo, setValor, opcional, valorPadroa 
       >{titulo}</Text>
     <View
       style={{
-        flex: 1,
         flexDirection: "row",
         justifyContent: "center"
       }}

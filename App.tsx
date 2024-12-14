@@ -7,6 +7,7 @@ import {
   ScrollView,
   Pressable,
 } from 'react-native';
+import { runInContext, createContext } from "node:vm"
 import { useState, useEffect, useMemo } from 'react';
 import ModalForm from "./components/modals/ModalForm"
 import ModalConversao from "./components/modals/ModalConversao"
@@ -63,6 +64,12 @@ export default function App() {
   const calculado = useMemo(calcular, [calculo, calcular]);
 
   function calcular(calculoPametro: string[] = calculo, variaveisParametro = variaveis): string {
+    function evalInContext(js: string, context: Record<string, any>) {
+      //# Return the results of the in-line anonymous function we .call with the passed context
+      return function() { return eval(js); }.call(context);
+  }
+    
+  
       try {
         let calculoTemporarioArray = calculoPametro;
         const mudar = [
@@ -90,6 +97,7 @@ export default function App() {
           regex: RegExp, 
           resultado: (match: RegExpMatchArray) => string
         ) => {
+         
           for (const match of calculoTemporario.matchAll(
             regex
           )) {
@@ -100,8 +108,9 @@ export default function App() {
           }
         }
 
-        const executarCalculoSinal = (char: string, mudar: (match: RegExpMatchArray) => string, bilateral = false) => {
-          const regex = new RegExp(`([0-9]+(\\.[0-9]+)?)?(\\(.+\\))?${char}${bilateral ? "([0-9]+(\\.[0-9]+)?)" : ""}`, "g")
+        const executarCalculoSinal = (char: string, mudar: (match: RegExpMatchArray) => string, bilateral = false, direita = false) => {
+        
+          const regex = new RegExp(`${(!direita || bilateral) ? "\\((.+)\\)" : ""}${char}${(bilateral || direita) ? `\\((.+)\\)` : ""}`, "g")
           executarCalculosEspeciais(
             regex,
             mudar
@@ -110,70 +119,72 @@ export default function App() {
 
         const executarFuncoes = ({nome, bilateral, transformar} : {nome: string, bilateral?: boolean, transformar: (direita: string, esquerda: string) => string }) => {
           // ([0-9\.]*)?(\(.*?\))?log([0-9\.]*)?(\(.+?\))?
-          const regex = new RegExp(`${bilateral ? "\\(([\.,]*?)\\)" : ""}${nome}\\((.+?)\\)`, "g")          
+          
+          const regex = new RegExp(`${bilateral ? "(\\(.+\\))?" : ""}${nome}\\((.+?)\\)`, "g")          
+          
           executarCalculosEspeciais(
             regex,
             match => {
-              const direitaIndividual = match[bilateral ? 4 : 1]
-              const direitaGrupo = match[bilateral ? 3 : 2]
+              console.log(match)
+              const direitaIndividual = bilateral ? match[2] : match[1]
               const esquerdaIndividual = match[1]
-              const esquerdaGrupo = match[2]
-              const esquerda = esquerdaIndividual ?? esquerdaGrupo
-              const direita = direitaGrupo ?? direitaIndividual
+              const esquerda = esquerdaIndividual
+              const direita = direitaIndividual
 
               return transformar(direita, esquerda)
             } 
           )
         }
 
-        executarFuncoes({ 
-          nome: "som", 
-          transformar: (direita) => `som(${direita})`
-        })
-        executarFuncoes({ 
-          nome: "len", 
-          transformar: (direita) => `len(${direita})`
-        })
-        executarFuncoes({
-          nome: "mul", 
-          transformar: (direita) => `mul(${direita})`
-        })
-        executarFuncoes({
-          nome: "med", 
-          transformar: (direita) => `med(${direita})`
-        })
-        executarFuncoes({
-          nome: "len",
-          transformar: (direita) => `len(${direita})`
-        })
+        // executarFuncoes({ 
+        //   nome: "som", 
+        //   transformar: (direita) => `som(${direita})`
+        // })
+        // executarFuncoes({ 
+        //   nome: "len", 
+        //   transformar: (direita) => `len(${direita})`
+        // })
+        // executarFuncoes({
+        //   nome: "mul", 
+        //   transformar: (direita) => `mul(${direita})`
+        // })
+        // executarFuncoes({
+        //   nome: "med", 
+        //   transformar: (direita) => `med(${direita})`
+        // })
+        // executarFuncoes({
+        //   nome: "len",
+        //   transformar: (direita) => `len(${direita})`
+        // })
 
         executarFuncoes({
           nome: "log",
           bilateral: true, 
-          transformar: (direita, esquerda) => `Math.log(${direita}) ${
+          transformar: (direita, esquerda) => {
+            return `Math.log(${direita}) ${
             esquerda
               ? `/ Math.log(${esquerda})`
               : ""
           }`
-        })
-        executarFuncoes({
-          nome: "log",
-          bilateral: true, 
-          transformar: (direita, esquerda) => `Math.log(${direita}) ${
-            esquerda
-              ? `/ Math.log(${esquerda})`
-              : ""
-          }`
-        })
+        }})
+
+        // })
+        // executarFuncoes({
+        //   nome: "log",
+        //   bilateral: true, 
+        //   transformar: (direita, esquerda) => `Math.log(${direita}) ${
+        //     esquerda
+        //       ? `/ Math.log(${esquerda})`
+        //       : ""
+        //   }`
+        // })
           
         executarCalculoSinal(
           "√",
           match => `Math.sqrt(${
-              match[2]
-                ? match[2].replace(/^\(/g, '').replace(/\)$/g, '')
-                : match[1]
+              match[1]
             })`
-        )
+      , false, true)
 
         executarFuncoes({
           nome: "sen",
@@ -194,19 +205,28 @@ export default function App() {
         })
 
         executarCalculoSinal("!", (match) => {
-          return `${myMath.fatorial(
-            eval(match[0].startsWith("(") ? match[3] : match[1]) as number
-          )}`
+          return `fatorial(${match[1]})`
         })
 
-        executarCalculoSinal("%", match =>  `${porcentagem(eval(match[1]), eval(match[3]))}`, true)
-
+        executarCalculoSinal("%", match =>  `porcentagem(${match[1]}, ${match[2]})`, true)
+porcentagem
         const evalMath = `
           const som = (...numeros) =>  numeros.reduce((acumulacao, num) => acumulacao + num, 0);
           const mul = (...numeros) =>numeros.reduce((acumulacao, num) => acumulacao * num, 1);
           const med = (...numeros) => numeros.reduce((acumulacao, num) => acumulacao + num, 0) / numeros.length;
           const len = (...numeros) => numeros.length;
+          const porcentagem = (num1, num2) => {
+            return (num2 / 100) * num1
+          }
+          const fatorial =  (numero)  => {
+            let resultado = 1
+            for (let n = numero; n > 0; n--) {
+              resultado *= n
+            }
+            return resultado
+          }
         `
+        console.log(calculoTemporario)
         const resultado = eval(evalMath + calculoTemporario)
         if (resultado == parseInt("aaa")) return 'calculo invalído'
         if (String(resultado).startsWith("function")) return 'calculo invalído'

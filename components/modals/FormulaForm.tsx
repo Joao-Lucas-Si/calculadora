@@ -16,10 +16,6 @@ export default function FormulaForm({ definicao, setValor }: {
   const [state, dispatch] = useReducer(reducer, {})
   const [camposDinamicos, setCamposDinamicos] = useState<DefinicaoFormulario[]>([])
 
-  // useEffect(() => {
-  //   console.log(camposDinamicos)
-  // }, [camposDinamicos])
-
   useEffect(() => setValor({...state}), [state])
 
   const mudarValor = (campo: typeof definicao[number]) => (numeros: any) => dispatch(state => {
