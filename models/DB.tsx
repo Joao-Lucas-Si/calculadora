@@ -25,7 +25,7 @@ export interface Formula {
   parametros: Variavel[]
 }
 
-export const db = SQLite.openDatabaseSync('../bd.db');
+export const db = SQLite.openDatabaseSync('database');
 
 export default async function create() {
   await db.execAsync( `
